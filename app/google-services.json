@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "538131572654",
+    "project_id": "quizappmerchich",
+    "storage_bucket": "quizappmerchich.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:538131572654:android:7a3e1c4065ca6694de0a3f",
+        "android_client_info": {
+          "package_name": "com.example.quizapp_merchich"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlczsgqdjKZ1lIJvxNMgD5NQ1ST25Kf5M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

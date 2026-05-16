@@ -1,0 +1,27 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.QuizApp_Merchich" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your light theme here. -->
+        <item name="colorPrimary">@color/primary_green</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="android:windowBackground">@color/bg_dark</item>
+        <item name="android:statusBarColor">@color/bg_dark</item>
+    </style>
+
+    <style name="Theme.QuizApp_Merchich" parent="Base.Theme.QuizApp_Merchich" />
+
+    <!-- Custom Button Styles -->
+    <style name="Widget.QuizApp.Button" parent="Widget.Material3.Button">
+        <item name="cornerRadius">12dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+    </style>
+
+    <style name="Widget.QuizApp.Gold" parent="Widget.QuizApp.Button">
+        <item name="backgroundTint">@color/football_gold</item>
+        <item name="android:textColor">@color/black</item>
+    </style>
+
+    <style name="Widget.QuizApp.Button.Gold" parent="Widget.QuizApp.Gold" />
+
+</resources>

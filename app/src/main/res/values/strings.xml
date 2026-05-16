@@ -1,0 +1,71 @@
+<resources>
+    <string name="app_name">Football Arena Quiz</string>
+
+    <!-- Auth -->
+    <string name="sign_in">Sign In</string>
+    <string name="register">Register</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="full_name">Full Name</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="no_account">Don\'t have an account? Register</string>
+    <string name="create_account_title">CREATE ACCOUNT</string>
+
+    <!-- Home -->
+    <string name="welcome_champion">Welcome, Champion!</string>
+    <string name="start_match">START KICK-OFF</string>
+    <string name="rankings">Rankings</string>
+    <string name="profile">Profile</string>
+    <string name="global_mode">🌍 Global Mode</string>
+    <string name="detected_region">📍 Detected Region: %1$s</string>
+
+    <!-- Quiz -->
+    <string name="preparing_pitch">Preparing Pitch...</string>
+    <string name="detecting_stadium">📡 Detecting Stadium...</string>
+    <string name="match_progress">MATCH %1$d OF %2$d</string>
+    <string name="submit_action">SUBMIT ACTION</string>
+    <string name="next_play">NEXT PLAY</string>
+    <string name="finish_match">FINISH MATCH</string>
+    <string name="select_strategy">Select your strategy first!</string>
+
+    <!-- Permissions -->
+    <string name="perm_explanation_title">🛡️ Permissions Request</string>
+    <string name="perm_explanation_desc">To provide the best football experience, we need the following access:\n\n🎤 Microphone: Future voice features.\n📷 Camera: Profile/Avatar features.\n📍 Location: Continent-based football quizzes.</string>
+    <string name="perm_grant_button">Grant Permissions</string>
+    <string name="loc_disabled_global">Permissions not fully granted — Running in Global Mode.</string>
+    <string name="loc_reset_demo">🛠 Reset Permissions (Demo)</string>
+
+    <!-- Camera & Multimedia -->
+    <string name="cam_update_success">Avatar updated successfully!</string>
+    <string name="cam_cancelled">Capture cancelled</string>
+    <string name="cam_no_app">No camera application found</string>
+    <string name="cam_no_hardware">Device has no camera</string>
+    <string name="cam_perm_denied">Camera permission denied</string>
+
+    <!-- Location Demo -->
+    <string name="loc_permission_title">📍 Personalized Experience</string>
+    <string name="loc_permission_desc">Enable location to receive football questions adapted to your continent and enjoy a custom football journey.</string>
+    <string name="loc_demo_dialog_title">📍 Location Usage Policy</string>
+    <string name="loc_demo_dialog_message">This app uses your location to personalize football questions based on your continent.\n\n(This dialog appears for demonstration purposes because permission is already granted).</string>
+    <string name="loc_continue">Continue with Location</string>
+    <string name="loc_open_settings">Open Location Settings</string>
+
+    <!-- Microphone -->
+    <string name="mic_listening">🎤 Listening...</string>
+    <string name="mic_permission_title">🎤 Voice Commands</string>
+    <string name="mic_permission_desc">Allow microphone access to answer football questions with your voice!</string>
+    <string name="mic_error_not_detected">No speech detected. Try again!</string>
+    <string name="mic_error_permission">Microphone permission denied.</string>
+
+    <!-- Maps -->
+    <string name="map_title">📍 Discover Football Arenas</string>
+    <string name="map_subtitle">Discover football locations near your continent</string>
+    <string name="map_detecting">Detecting your football region...</string>
+    <string name="map_error">Could not load football map.</string>
+
+    <!-- Score -->
+    <string name="quiz_completed">QUIZ COMPLETED!</string>
+    <string name="excellent_perf">Excellent Performance!</string>
+    <string name="play_again">Play Again</string>
+    <string name="log_out">Log Out</string>
+</resources>
