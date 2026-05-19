@@ -2,7 +2,6 @@ package com.example.quizapp_merchich;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Patterns;
@@ -18,6 +17,11 @@ import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class Register extends AppCompatActivity {
     private static final String TAG = "QUIZ_DEBUG";
@@ -67,31 +71,63 @@ public class Register extends AppCompatActivity {
         
         bRegister.setEnabled(false);
 
-        // Sécurité : Réactiver le bouton après 10 secondes si pas de réponse
-        new Handler().postDelayed(() -> {
-            if (!bRegister.isEnabled()) {
-                bRegister.setEnabled(true);
-                Log.w(TAG, "Timeout : Firebase ne répond pas. Vérifiez SHA-1 et Internet.");
-                Toast.makeText(Register.this, "Le serveur ne répond pas. Vérifiez votre connexion ou votre config SHA-1.", Toast.LENGTH_LONG).show();
-            }
-        }, 10000);
-
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
-                        bRegister.setEnabled(true);
                         if (task.isSuccessful()) {
-                            Log.d(TAG, "Utilisateur créé avec succès !");
-                            Toast.makeText(Register.this, "Inscription réussie !", Toast.LENGTH_SHORT).show();
-                            startActivity(new Intent(Register.this, MainActivity.class));
-                            finish();
+                            FirebaseUser user = mAuth.getCurrentUser();
+                            if (user != null) {
+                                syncUserWithBackend(user.getUid(), user.getEmail());
+                            } else {
+                                bRegister.setEnabled(true);
+                                proceedToMain();
+                            }
                         } else {
+                            bRegister.setEnabled(true);
                             String error = task.getException() != null ? task.getException().getMessage() : "Erreur inconnue";
                             Log.e(TAG, "Erreur Firebase : " + error);
                             Toast.makeText(Register.this, "Erreur : " + error, Toast.LENGTH_LONG).show();
                         }
                     }
                 });
+    }
+
+    private void syncUserWithBackend(String uid, String email) {
+        UserSyncRequest request = new UserSyncRequest(uid, email);
+        String endpoint = "POST /api/users/sync";
+        ApiLogger.logRequest(endpoint, "uid=" + uid + ", email=" + email);
+
+        RetrofitClient.getApiService().syncUser(request).enqueue(new Callback<ApiResponse<UserResponse>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<UserResponse>> call, Response<ApiResponse<UserResponse>> response) {
+                bRegister.setEnabled(true);
+                if (response.isSuccessful() && response.body() != null) {
+                    ApiResponse<UserResponse> apiResponse = response.body();
+                    ApiLogger.logResponse(endpoint, response.code(), apiResponse.getMessage());
+                    if (apiResponse.isSuccess()) {
+                        Log.d(TAG, "User synced with backend successfully");
+                    } else {
+                        ApiLogger.logError(endpoint, "Backend sync error: " + apiResponse.getMessage(), null);
+                    }
+                } else {
+                    ApiLogger.logError(endpoint, "HTTP Error: " + response.code(), null);
+                }
+                proceedToMain();
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<UserResponse>> call, Throwable t) {
+                bRegister.setEnabled(true);
+                ApiLogger.logError(endpoint, "Network failure: " + t.getMessage(), t);
+                proceedToMain();
+            }
+        });
+    }
+
+    private void proceedToMain() {
+        Toast.makeText(Register.this, "Inscription réussie !", Toast.LENGTH_SHORT).show();
+        startActivity(new Intent(Register.this, MainActivity.class));
+        finish();
     }
 }

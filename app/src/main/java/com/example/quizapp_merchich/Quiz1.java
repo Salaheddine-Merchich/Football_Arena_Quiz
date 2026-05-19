@@ -36,6 +36,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class Quiz1 extends AppCompatActivity {
     private static final String TAG = "QUIZ_MIC_FIX";
     private static final int LOCATION_PERMISSION_CODE = 1001;
@@ -119,11 +123,11 @@ public class Quiz1 extends AppCompatActivity {
             speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
             speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toString());
             speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
-            
+
             // INCREASE RELIABILITY: Configuration for better speech detection
             speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
             speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
-            
+
             // Help the engine stay active longer during silence
             speechRecognizerIntent.putExtra("android.speech.extras.SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS", 5000L);
             speechRecognizerIntent.putExtra("android.speech.extras.SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS", 5000L);
@@ -172,8 +176,8 @@ public class Quiz1 extends AppCompatActivity {
                             case SpeechRecognizer.ERROR_NETWORK: message = "Network error"; break;
                             case SpeechRecognizer.ERROR_NETWORK_TIMEOUT: message = "Network timeout"; break;
                             case SpeechRecognizer.ERROR_NO_MATCH: message = getString(R.string.mic_error_not_detected); break;
-                            case SpeechRecognizer.ERROR_RECOGNIZER_BUSY: 
-                                message = "Voice engine busy, retry..."; 
+                            case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
+                                message = "Voice engine busy, retry...";
                                 initializeSpeechRecognizer(); // Re-initialize if busy
                                 break;
                             case SpeechRecognizer.ERROR_SPEECH_TIMEOUT: message = getString(R.string.mic_error_not_detected); break;
@@ -233,7 +237,7 @@ public class Quiz1 extends AppCompatActivity {
                 isListening = true;
             } catch (Exception e) {
                 Log.e(TAG, "toggleMic: Failed to start listening", e);
-                initializeSpeechRecognizer(); 
+                initializeSpeechRecognizer();
                 Toast.makeText(this, "System busy, try again in a second", Toast.LENGTH_SHORT).show();
             }
         } else {
@@ -246,7 +250,7 @@ public class Quiz1 extends AppCompatActivity {
     private void processVoiceInput(String voiceText) {
         String input = voiceText.toLowerCase().trim();
         RadioButton[] options = {rbA, rbB, rbC, rbD};
-        
+
         // 1. Try matching the actual option text
         for (RadioButton rb : options) {
             String optionText = rb.getText().toString().toLowerCase().trim();
@@ -325,8 +329,69 @@ public class Quiz1 extends AppCompatActivity {
     }
 
     private void loadMatchContent() {
+        Call<ApiResponse<List<QuestionResponse>>> call;
+        String endpoint;
+        if (detectedContinent.equals("Global")) {
+            endpoint = "GET /api/questions";
+            call = RetrofitClient.getApiService().getQuestions();
+        } else {
+            endpoint = "GET /api/questions?continent=" + detectedContinent;
+            call = RetrofitClient.getApiService().getQuestionsByContinent(detectedContinent);
+        }
+
+        ApiLogger.logRequest(endpoint, null);
+
+        call.enqueue(new Callback<ApiResponse<List<QuestionResponse>>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<List<QuestionResponse>>> call, Response<ApiResponse<List<QuestionResponse>>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    List<QuestionResponse> apiQuestions = response.body().getData();
+                    ApiLogger.logResponse(endpoint, response.code(), "Items: " + (apiQuestions != null ? apiQuestions.size() : 0));
+                    
+                    if (apiQuestions != null && !apiQuestions.isEmpty()) {
+                        questionList.clear();
+                        for (QuestionResponse qr : apiQuestions) {
+                            List<String> opts = qr.getOptions();
+                            questionList.add(new Question(
+                                    qr.getQuestion(),
+                                    opts.size() > 0 ? opts.get(0) : "",
+                                    opts.size() > 1 ? opts.get(1) : "",
+                                    opts.size() > 2 ? opts.get(2) : "",
+                                    opts.size() > 3 ? opts.get(3) : "",
+                                    qr.getCorrectAnswer(),
+                                    R.drawable.quiz_banner, // Default image
+                                    qr.getContinent()
+                            ));
+                        }
+                        Collections.shuffle(questionList);
+                        if (questionList.size() > 5) questionList = questionList.subList(0, 5);
+                        setupQuizStart();
+                    } else {
+                        fallbackToLocalQuestions();
+                    }
+                } else {
+                    ApiLogger.logError(endpoint, "Response not successful or data null", null);
+                    fallbackToLocalQuestions();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<List<QuestionResponse>>> call, Throwable t) {
+                ApiLogger.logError(endpoint, "Network failure: " + t.getMessage(), t);
+                Toast.makeText(Quiz1.this, "Offline mode activated", Toast.LENGTH_SHORT).show();
+                fallbackToLocalQuestions();
+            }
+        });
+    }
+
+    private void fallbackToLocalQuestions() {
         questionList = QuestionBank.getQuestionsByContinent(detectedContinent);
         Collections.shuffle(questionList);
+        if (questionList.size() > 5) questionList = questionList.subList(0, 5);
+        setupQuizStart();
+    }
+
+    private void setupQuizStart() {
         bNext.setEnabled(true);
         bNext.setText(R.string.start_match);
         displayQuestion();
@@ -336,9 +401,9 @@ public class Quiz1 extends AppCompatActivity {
         if (currentQuestionIndex < questionList.size()) {
             isAnswered = false;
             Question q = questionList.get(currentQuestionIndex);
-            
+
             quizProgressBar.setProgress((int) (((float) (currentQuestionIndex + 1) / questionList.size()) * 100), true);
-            tvProgress.setText(String.format(Locale.getDefault(), "MATCH %d / 5", currentQuestionIndex + 1));
+            tvProgress.setText(String.format(Locale.getDefault(), "MATCH %d / %d", currentQuestionIndex + 1, questionList.size()));
             tvCurrentScore.setText(String.format(Locale.getDefault(), "Score: %d", score));
 
             tvQuestion.setText(q.getQuestionText());
@@ -406,7 +471,7 @@ public class Quiz1 extends AppCompatActivity {
             selectedRb = findViewById(checkedId);
             selected = selectedRb.getText().toString();
         }
-        
+
         String correct = questionList.get(currentQuestionIndex).getCorrectAnswer();
 
         if (selected.equals(correct)) {

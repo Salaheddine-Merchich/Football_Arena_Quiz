@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.text.TextUtils;
+import android.util.Log;
 import android.util.Patterns;
 import android.widget.Button;
 import android.widget.EditText;
@@ -21,7 +22,12 @@ import androidx.core.content.ContextCompat;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class MainActivity extends AppCompatActivity {
+    private static final String TAG = "QUIZ_DEBUG";
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
 
     EditText etLogin, etPassword;
@@ -51,12 +57,17 @@ public class MainActivity extends AppCompatActivity {
         bLogin.setOnClickListener(v -> loginUser());
         tvRegister.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, Register.class)));
         
-        // 2. Demo Mode Button: Redirect to settings so you can reset and show the popup again
         btnResetPermission.setOnClickListener(v -> openAppSettings());
+
+        Log.d(TAG, "MainActivity initialized. Checking for existing session...");
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+        if (currentUser != null) {
+            Log.d(TAG, "User already logged in: " + currentUser.getEmail());
+            syncUserAndStart(currentUser);
+        }
     }
 
     private void checkAndRequestLocationPermission() {
-        // Requesting both FINE and COARSE to trigger the modern Android selection UI (Precise vs Approximate)
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 
@@ -88,7 +99,10 @@ public class MainActivity extends AppCompatActivity {
     private void detectUserLocation() {
         LocationHelper.detectLocation(this, (locationInfo, continent) -> {
             detectedContinent = continent;
-            runOnUiThread(() -> Toast.makeText(this, "Arena: " + continent, Toast.LENGTH_SHORT).show());
+            runOnUiThread(() -> {
+                Log.d(TAG, "Detected Continent: " + continent);
+                Toast.makeText(this, "Arena: " + continent, Toast.LENGTH_SHORT).show();
+            });
         });
     }
 
@@ -97,7 +111,6 @@ public class MainActivity extends AppCompatActivity {
         Uri uri = Uri.fromParts("package", getPackageName(), null);
         intent.setData(uri);
         startActivity(intent);
-        Toast.makeText(this, "Reset location permission in Settings to see the popup again", Toast.LENGTH_LONG).show();
     }
 
     private void loginUser() {
@@ -113,14 +126,45 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        Log.d(TAG, "Attempting Firebase Login for: " + email);
         mAuth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
-                        startHome();
+                        FirebaseUser user = mAuth.getCurrentUser();
+                        Log.d(TAG, "Firebase Login Successful");
+                        syncUserAndStart(user);
                     } else {
+                        Log.e(TAG, "Firebase Login Failed", task.getException());
                         Toast.makeText(MainActivity.this, "Authentication failed.", Toast.LENGTH_SHORT).show();
                     }
                 });
+    }
+
+    private void syncUserAndStart(FirebaseUser user) {
+        if (user == null) return;
+
+        UserSyncRequest request = new UserSyncRequest(user.getUid(), user.getEmail());
+        String endpoint = "POST /api/users/sync";
+        Log.d("QUIZ_API", "FORCING USER SYNC: " + user.getEmail());
+        ApiLogger.logRequest(endpoint, "uid=" + user.getUid());
+
+        RetrofitClient.getApiService().syncUser(request).enqueue(new Callback<ApiResponse<UserResponse>>() {
+            @Override
+            public void onResponse(Call<ApiResponse<UserResponse>> call, Response<ApiResponse<UserResponse>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    ApiLogger.logResponse(endpoint, response.code(), response.body().getMessage());
+                } else {
+                    ApiLogger.logError(endpoint, "Sync Response Error: " + response.code(), null);
+                }
+                startHome();
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<UserResponse>> call, Throwable t) {
+                ApiLogger.logError(endpoint, "Sync failed: " + t.getMessage(), t);
+                startHome(); // Fallback
+            }
+        });
     }
 
     private void startHome() {

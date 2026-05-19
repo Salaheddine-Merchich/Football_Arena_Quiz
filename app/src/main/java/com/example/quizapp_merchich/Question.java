@@ -1,13 +1,15 @@
 package com.example.quizapp_merchich;
 
-public class Question {
+import java.io.Serializable;
+
+public class Question implements Serializable {
     private String questionText;
     private String optionA;
     private String optionB;
     private String optionC;
     private String optionD;
     private String correctAnswer;
-    private int imageResource; // Directly using R.drawable ID
+    private int imageResource;
     private String continent;
 
     public Question(String questionText, String optionA, String optionB, String optionC, String optionD, String correctAnswer, int imageResource, String continent) {
