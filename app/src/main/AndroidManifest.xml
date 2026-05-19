@@ -14,6 +14,9 @@
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />
         </intent>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
     </queries>
 
     <application
@@ -27,11 +30,9 @@
         android:theme="@style/Theme.QuizApp_Merchich"
         android:usesCleartextTraffic="true">
 
-        <!-- GOOGLE MAPS API KEY -->
-        <!-- Replace "YOUR_API_KEY" with your actual Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="YOUR_API_KEY" />
+            android:value="AIzaSyD1ILmH3acq91OkcYnqWFZb4NXANe5G9AI" />
 
         <activity
             android:name=".MainActivity"

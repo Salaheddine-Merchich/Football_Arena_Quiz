@@ -3,6 +3,7 @@ package com.example.quizapp_merchich;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.HapticFeedbackConstants;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RadioButton;
@@ -11,54 +12,58 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class Quiz5 extends AppCompatActivity {
-    RadioGroup rg;
-    RadioButton rb1, rb2;
-    Button bNext;
-    TextView tvQuestion, tvContinent;
-    ImageView ivQuestion;
+    private RadioGroup rgOptions;
+    private RadioButton rbA, rbB, rbC, rbD;
+    private Button bNext;
+    private TextView tvQuestion, tvContinent, tvCurrentScore;
+    private ImageView ivQuestion;
 
-    int score;
-    String detectedContinent;
-    String RepCorrect = "";
+    private int score;
+    private String detectedContinent;
+    private String RepCorrect = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_quiz5);
 
-        // UI Initialization
-        rg = findViewById(R.id.rg);
-        rb1 = findViewById(R.id.rb1);
-        rb2 = findViewById(R.id.rb2);
+        // UI Initialization with modern IDs
+        rgOptions = findViewById(R.id.rgOptions);
+        rbA = findViewById(R.id.rbOptionA);
+        rbB = findViewById(R.id.rbOptionB);
+        rbC = findViewById(R.id.rbOptionC);
+        rbD = findViewById(R.id.rbOptionD);
         bNext = findViewById(R.id.bNext);
         tvQuestion = findViewById(R.id.tvQuestion);
         tvContinent = findViewById(R.id.tvContinent);
+        tvCurrentScore = findViewById(R.id.tvCurrentScore);
         ivQuestion = findViewById(R.id.ivQuestion);
 
-        // Retrieve data from previous activity
+        // Retrieve data
         Intent intent = getIntent();
         score = intent.getIntExtra("score", 0);
         detectedContinent = intent.getStringExtra("continent");
         if (detectedContinent == null) detectedContinent = "Global";
 
-        // UI Requirement: Display detected continent
-        tvContinent.setText("📍 Region: " + detectedContinent);
+        tvContinent.setText("📍 " + detectedContinent);
+        tvCurrentScore.setText("Score: " + score);
         
-        // Load content based on continent
-        setupQuizContent(detectedContinent);
+        setupQuizContent();
 
         bNext.setOnClickListener(v -> {
-            if (rg.getCheckedRadioButtonId() == -1) {
-                Toast.makeText(getApplicationContext(), "Please select an answer!", Toast.LENGTH_SHORT).show();
+            v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+            if (rgOptions.getCheckedRadioButtonId() == -1) {
+                Toast.makeText(this, "Final move! Select an answer!", Toast.LENGTH_SHORT).show();
             } else {
-                RadioButton selectedRb = findViewById(rg.getCheckedRadioButtonId());
+                RadioButton selectedRb = findViewById(rgOptions.getCheckedRadioButtonId());
                 if (selectedRb.getText().toString().equals(RepCorrect)) {
-                    score += 1;
+                    score++;
                 }
+                
                 // Navigate to final Score activity
                 Intent nextIntent = new Intent(Quiz5.this, Score.class);
                 nextIntent.putExtra("score", score);
-                nextIntent.putExtra("total", 5); // Total questions in this flow
+                nextIntent.putExtra("total", 5); 
                 nextIntent.putExtra("continent", detectedContinent);
                 startActivity(nextIntent);
                 finish();
@@ -66,39 +71,32 @@ public class Quiz5 extends AppCompatActivity {
         });
     }
 
-    private void setupQuizContent(String continent) {
-        // Intégration de la bannière principale du quiz
+    private void setupQuizContent() {
         ivQuestion.setImageResource(R.drawable.quiz_banner);
-
-        switch (continent) {
+        
+        switch (detectedContinent) {
             case "Africa":
-                tvQuestion.setText("Which legendary Moroccan club is nicknamed 'The Green Eagles' and plays at Stade Mohammed V?");
-                rb1.setText("Raja CA");
-                rb2.setText("Wydad AC");
+                tvQuestion.setText("Which Moroccan club is nicknamed 'The Green Eagles'?");
+                rbA.setText("Raja CA"); rbB.setText("Wydad AC"); 
+                rbC.setText("AS FAR"); rbD.setText("Maghreb Fès");
                 RepCorrect = "Raja CA";
                 break;
             case "Europe":
-                tvQuestion.setText("Which club plays its home matches at the iconic Camp Nou stadium?");
-                rb1.setText("FC Barcelona");
-                rb2.setText("Real Madrid");
+                tvQuestion.setText("Which club plays at the iconic Camp Nou stadium?");
+                rbA.setText("FC Barcelona"); rbB.setText("Real Madrid"); 
+                rbC.setText("Atletico Madrid"); rbD.setText("Espanyol");
                 RepCorrect = "FC Barcelona";
                 break;
             case "South America":
-                tvQuestion.setText("Which player captained Argentina to their 2022 FIFA World Cup victory?");
-                rb1.setText("Lionel Messi");
-                rb2.setText("Neymar Jr");
+                tvQuestion.setText("Who captained Argentina to the 2022 World Cup title?");
+                rbA.setText("Lionel Messi"); rbB.setText("Angel Di Maria"); 
+                rbC.setText("Rodrigo De Paul"); rbD.setText("Julian Alvarez");
                 RepCorrect = "Lionel Messi";
                 break;
-            case "Asia":
-                tvQuestion.setText("Which nation has won the most AFC Asian Cup titles (4 titles)?");
-                rb1.setText("Japan");
-                rb2.setText("South Korea");
-                RepCorrect = "Japan";
-                break;
             default:
-                tvQuestion.setText("What is the official duration of a standard professional football match?");
-                rb1.setText("90 minutes");
-                rb2.setText("80 minutes");
+                tvQuestion.setText("What is the official duration of a standard football match?");
+                rbA.setText("90 minutes"); rbB.setText("80 minutes"); 
+                rbC.setText("100 minutes"); rbD.setText("70 minutes");
                 RepCorrect = "90 minutes";
                 break;
         }

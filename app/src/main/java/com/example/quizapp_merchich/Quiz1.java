@@ -7,10 +7,8 @@ import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.provider.Settings;
@@ -20,10 +18,8 @@ import android.speech.SpeechRecognizer;
 import android.util.Log;
 import android.view.HapticFeedbackConstants;
 import android.view.View;
-import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.view.animation.ScaleAnimation;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RadioButton;
@@ -41,11 +37,9 @@ import java.util.List;
 import java.util.Locale;
 
 public class Quiz1 extends AppCompatActivity {
-    private static final String TAG = "QUIZ_DEBUG";
+    private static final String TAG = "QUIZ_MIC_FIX";
     private static final int LOCATION_PERMISSION_CODE = 1001;
     private static final int MIC_PERMISSION_CODE = 1002;
-    private static final String PREFS_NAME = "quiz_prefs";
-    private static final String KEY_LOCATION_REQUESTED = "location_requested";
 
     // UI Elements
     private RadioGroup rgOptions;
@@ -116,68 +110,162 @@ public class Quiz1 extends AppCompatActivity {
 
     private void initializeSpeechRecognizer() {
         if (SpeechRecognizer.isRecognitionAvailable(this)) {
+            Log.d(TAG, "Initializing SpeechRecognizer engine...");
+            if (speechRecognizer != null) {
+                speechRecognizer.destroy();
+            }
             speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
             speechRecognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
             speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-            speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+            speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toString());
+            speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
+            
+            // INCREASE RELIABILITY: Configuration for better speech detection
+            speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+            speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
+            
+            // Help the engine stay active longer during silence
+            speechRecognizerIntent.putExtra("android.speech.extras.SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS", 5000L);
+            speechRecognizerIntent.putExtra("android.speech.extras.SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS", 5000L);
+            speechRecognizerIntent.putExtra("android.speech.extras.SPEECH_INPUT_MINIMUM_MAYBE_COMPLETE_SILENCE_LENGTH_MILLIS", 3000L);
 
             speechRecognizer.setRecognitionListener(new RecognitionListener() {
                 @Override
                 public void onReadyForSpeech(Bundle params) {
-                    Toast.makeText(Quiz1.this, R.string.mic_listening, Toast.LENGTH_SHORT).show();
-                    isListening = true;
-                    Animation pulse = AnimationUtils.loadAnimation(Quiz1.this, R.anim.pulse);
-                    fabMic.startAnimation(pulse);
+                    Log.d(TAG, "onReadyForSpeech: Microphone ready");
+                    runOnUiThread(() -> {
+                        Toast.makeText(Quiz1.this, R.string.mic_listening, Toast.LENGTH_SHORT).show();
+                        isListening = true;
+                        Animation pulse = AnimationUtils.loadAnimation(Quiz1.this, R.anim.pulse);
+                        fabMic.startAnimation(pulse);
+                    });
                 }
+
+                @Override
+                public void onBeginningOfSpeech() {
+                    Log.d(TAG, "onBeginningOfSpeech: User started speaking");
+                }
+
+                @Override
+                public void onRmsChanged(float rmsdB) {}
+
+                @Override
+                public void onBufferReceived(byte[] buffer) {}
+
                 @Override
                 public void onEndOfSpeech() {
+                    Log.d(TAG, "onEndOfSpeech: User stopped speaking");
                     isListening = false;
-                    fabMic.clearAnimation();
+                    runOnUiThread(() -> fabMic.clearAnimation());
                 }
+
                 @Override
                 public void onError(int error) {
                     isListening = false;
-                    fabMic.clearAnimation();
-                    if (error == SpeechRecognizer.ERROR_NO_MATCH) {
-                        Toast.makeText(Quiz1.this, R.string.mic_error_not_detected, Toast.LENGTH_SHORT).show();
-                    }
+                    runOnUiThread(() -> {
+                        fabMic.clearAnimation();
+                        String message;
+                        switch (error) {
+                            case SpeechRecognizer.ERROR_AUDIO: message = "Audio recording error"; break;
+                            case SpeechRecognizer.ERROR_CLIENT: message = "Client error - Check Google app"; break;
+                            case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS: message = "Mic permission required"; break;
+                            case SpeechRecognizer.ERROR_NETWORK: message = "Network error"; break;
+                            case SpeechRecognizer.ERROR_NETWORK_TIMEOUT: message = "Network timeout"; break;
+                            case SpeechRecognizer.ERROR_NO_MATCH: message = getString(R.string.mic_error_not_detected); break;
+                            case SpeechRecognizer.ERROR_RECOGNIZER_BUSY: 
+                                message = "Voice engine busy, retry..."; 
+                                initializeSpeechRecognizer(); // Re-initialize if busy
+                                break;
+                            case SpeechRecognizer.ERROR_SPEECH_TIMEOUT: message = getString(R.string.mic_error_not_detected); break;
+                            default: message = "Microphone error: " + error; break;
+                        }
+                        Log.e(TAG, "onError: " + message + " (Code: " + error + ")");
+                        Toast.makeText(Quiz1.this, message, Toast.LENGTH_SHORT).show();
+                    });
                 }
+
                 @Override
                 public void onResults(Bundle results) {
                     ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                    if (matches != null && !matches.isEmpty()) processVoiceInput(matches.get(0));
+                    if (matches != null && !matches.isEmpty()) {
+                        String voiceText = matches.get(0);
+                        Log.d(TAG, "onResults: Recognized text: " + voiceText);
+                        runOnUiThread(() -> {
+                            Toast.makeText(Quiz1.this, "You said: " + voiceText, Toast.LENGTH_LONG).show();
+                            processVoiceInput(voiceText);
+                        });
+                    }
                 }
-                @Override public void onBeginningOfSpeech() {}
-                @Override public void onRmsChanged(float rmsdB) {}
-                @Override public void onBufferReceived(byte[] buffer) {}
-                @Override public void onPartialResults(Bundle partialResults) {}
-                @Override public void onEvent(int eventType, Bundle params) {}
+
+                @Override
+                public void onPartialResults(Bundle partialResults) {
+                    ArrayList<String> matches = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                    if (matches != null && !matches.isEmpty()) {
+                        Log.d(TAG, "onPartialResults: " + matches.get(0));
+                    }
+                }
+
+                @Override
+                public void onEvent(int eventType, Bundle params) {}
             });
+        } else {
+            Log.e(TAG, "Speech Recognition not available on device");
+            Toast.makeText(this, "Voice interaction not supported", Toast.LENGTH_SHORT).show();
         }
     }
 
     private void toggleMic() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            Log.d(TAG, "toggleMic: Requesting MIC permission");
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, MIC_PERMISSION_CODE);
             return;
         }
-        if (isAnswered) return;
-        if (!isListening) speechRecognizer.startListening(speechRecognizerIntent);
-        else speechRecognizer.stopListening();
+
+        if (isAnswered) {
+            Log.d(TAG, "toggleMic: Ignore - Question dejà repondue");
+            return;
+        }
+
+        if (!isListening) {
+            try {
+                Log.d(TAG, "toggleMic: Starting SpeechRecognizer");
+                speechRecognizer.startListening(speechRecognizerIntent);
+                isListening = true;
+            } catch (Exception e) {
+                Log.e(TAG, "toggleMic: Failed to start listening", e);
+                initializeSpeechRecognizer(); 
+                Toast.makeText(this, "System busy, try again in a second", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            Log.d(TAG, "toggleMic: Stopping SpeechRecognizer manually");
+            speechRecognizer.stopListening();
+            isListening = false;
+        }
     }
 
     private void processVoiceInput(String voiceText) {
         String input = voiceText.toLowerCase().trim();
         RadioButton[] options = {rbA, rbB, rbC, rbD};
+        
+        // 1. Try matching the actual option text
         for (RadioButton rb : options) {
-            String text = rb.getText().toString().toLowerCase().trim();
-            if (input.contains(text) || text.contains(input)) {
+            String optionText = rb.getText().toString().toLowerCase().trim();
+            if (input.contains(optionText) || optionText.contains(input)) {
+                Log.d(TAG, "processVoiceInput: Match found for: " + optionText);
                 rb.setChecked(true);
                 checkAnswer();
                 return;
             }
         }
-        Toast.makeText(this, "Heard: \"" + voiceText + "\". Try again!", Toast.LENGTH_SHORT).show();
+
+        // 2. Try matching position labels
+        if (input.contains("option a") || input.contains("choix a") || input.equals("a")) { rbA.setChecked(true); checkAnswer(); }
+        else if (input.contains("option b") || input.contains("choix b") || input.equals("b")) { rbB.setChecked(true); checkAnswer(); }
+        else if (input.contains("option c") || input.contains("choix c") || input.equals("c")) { rbC.setChecked(true); checkAnswer(); }
+        else if (input.contains("option d") || input.contains("choix d") || input.equals("d")) { rbD.setChecked(true); checkAnswer(); }
+        else {
+            Log.d(TAG, "processVoiceInput: No match found for input: " + voiceText);
+        }
     }
 
     private void handleLocationPermissionFlow() {
@@ -194,8 +282,8 @@ public class Quiz1 extends AppCompatActivity {
 
     private void showRationaleDialog() {
         new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.perm_explanation_title)
-                .setMessage(R.string.perm_explanation_desc)
+                .setTitle(R.string.loc_permission_title)
+                .setMessage(R.string.loc_permission_desc)
                 .setPositiveButton("Allow", (dialog, which) -> requestLocationPermission())
                 .setNegativeButton("Maybe Later", (dialog, which) -> activateGlobalMode(getString(R.string.loc_disabled_global)))
                 .setCancelable(false)
@@ -214,7 +302,7 @@ public class Quiz1 extends AppCompatActivity {
             else activateGlobalMode(getString(R.string.loc_disabled_global));
         } else if (requestCode == MIC_PERMISSION_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) toggleMic();
-            else Toast.makeText(this, R.string.mic_error_permission, Toast.LENGTH_SHORT).show();
+            else Toast.makeText(this, "Microphone access denied", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -250,14 +338,9 @@ public class Quiz1 extends AppCompatActivity {
             Question q = questionList.get(currentQuestionIndex);
             
             quizProgressBar.setProgress((int) (((float) (currentQuestionIndex + 1) / questionList.size()) * 100), true);
-            tvProgress.setText(String.format(Locale.getDefault(), getString(R.string.match_progress), currentQuestionIndex + 1, questionList.size()));
+            tvProgress.setText(String.format(Locale.getDefault(), "MATCH %d / 5", currentQuestionIndex + 1));
             tvCurrentScore.setText(String.format(Locale.getDefault(), "Score: %d", score));
 
-            AlphaAnimation fadeIn = new AlphaAnimation(0.0f, 1.0f);
-            fadeIn.setDuration(400);
-            tvQuestion.startAnimation(fadeIn);
-            ivQuestion.startAnimation(fadeIn);
-            
             tvQuestion.setText(q.getQuestionText());
             rbA.setText(q.getOptionA());
             rbB.setText(q.getOptionB());
@@ -312,7 +395,10 @@ public class Quiz1 extends AppCompatActivity {
 
         isAnswered = true;
         fabMic.hide();
-        if (isListening) speechRecognizer.stopListening();
+        if (isListening) {
+            speechRecognizer.stopListening();
+            isListening = false;
+        }
 
         String selected = "";
         RadioButton selectedRb = null;
@@ -364,7 +450,8 @@ public class Quiz1 extends AppCompatActivity {
                 .setMessage(message)
                 .setPositiveButton("Open Settings", (dialog, which) -> {
                     Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                    intent.setData(Uri.fromParts("package", getPackageName(), null));
+                    Uri uri = Uri.fromParts("package", getPackageName(), null);
+                    intent.setData(uri);
                     startActivity(intent);
                 })
                 .setNegativeButton("Cancel", null)
@@ -375,6 +462,9 @@ public class Quiz1 extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         if (countDownTimer != null) countDownTimer.cancel();
-        if (speechRecognizer != null) speechRecognizer.destroy();
+        if (speechRecognizer != null) {
+            speechRecognizer.destroy();
+            Log.d(TAG, "Speech engine destroyed properly");
+        }
     }
 }

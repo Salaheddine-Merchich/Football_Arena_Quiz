@@ -3,60 +3,64 @@ package com.example.quizapp_merchich;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
+import android.view.HapticFeedbackConstants;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 public class Quiz2 extends AppCompatActivity {
-    RadioGroup rg;
-    RadioButton rb1, rb2;
-    Button bNext;
-    TextView tvQuestion, tvContinent;
-    ImageView ivQuestion;
-    
-    int score;
-    String detectedContinent;
-    String RepCorrect = "";
+    private RadioGroup rgOptions;
+    private RadioButton rbA, rbB, rbC, rbD;
+    private Button bNext;
+    private TextView tvQuestion, tvContinent, tvCurrentScore;
+    private ImageView ivQuestion;
+    private FloatingActionButton fabMic;
+
+    private int score;
+    private String detectedContinent;
+    private String RepCorrect = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_quiz2);
 
-        rg = findViewById(R.id.rg);
-        rb1 = findViewById(R.id.rb1);
-        rb2 = findViewById(R.id.rb2);
+        // Bind UI with new IDs
+        rgOptions = findViewById(R.id.rgOptions);
+        rbA = findViewById(R.id.rbOptionA);
+        rbB = findViewById(R.id.rbOptionB);
+        rbC = findViewById(R.id.rbOptionC);
+        rbD = findViewById(R.id.rbOptionD);
         bNext = findViewById(R.id.bNext);
         tvQuestion = findViewById(R.id.tvQuestion);
         tvContinent = findViewById(R.id.tvContinent);
+        tvCurrentScore = findViewById(R.id.tvCurrentScore);
         ivQuestion = findViewById(R.id.ivQuestion);
+        fabMic = findViewById(R.id.fabMic);
 
         Intent intent = getIntent();
         score = intent.getIntExtra("score", 0);
         detectedContinent = intent.getStringExtra("continent");
         if (detectedContinent == null) detectedContinent = "Global";
 
-        tvContinent.setText("📍 Detected Region: " + detectedContinent);
-        setupQuizContent(detectedContinent);
+        tvContinent.setText("📍 " + detectedContinent);
+        tvCurrentScore.setText("Score: " + score);
+        
+        setupQuizContent();
 
         bNext.setOnClickListener(v -> {
-            if (rg.getCheckedRadioButtonId() == -1) {
-                Toast.makeText(getApplicationContext(), "Please select an answer!", Toast.LENGTH_SHORT).show();
+            v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+            if (rgOptions.getCheckedRadioButtonId() == -1) {
+                Toast.makeText(this, "Please select an answer!", Toast.LENGTH_SHORT).show();
             } else {
-                RadioButton selectedRb = findViewById(rg.getCheckedRadioButtonId());
+                RadioButton selectedRb = findViewById(rgOptions.getCheckedRadioButtonId());
                 if (selectedRb.getText().toString().equals(RepCorrect)) {
-                    score += 1;
+                    score++;
                 }
-                // Continue to next question
                 Intent nextIntent = new Intent(Quiz2.this, Quiz3.class);
                 nextIntent.putExtra("score", score);
                 nextIntent.putExtra("continent", detectedContinent);
@@ -66,56 +70,19 @@ public class Quiz2 extends AppCompatActivity {
         });
     }
 
-    private void setupQuizContent(String continent) {
-        // Intégration de la bannière principale du quiz
+    private void setupQuizContent() {
         ivQuestion.setImageResource(R.drawable.quiz_banner);
-
-        String qText = "";
-        String opt1 = "";
-        String opt2 = "";
-
-        switch (continent) {
-            case "Africa":
-                qText = "Which African player won the Ballon d'Or in 1995?";
-                opt1 = "George Weah";
-                opt2 = "Samuel Eto'o";
-                RepCorrect = "George Weah";
-                break;
-            case "Europe":
-                qText = "Which city hosted the 2024 UEFA Champions League final?";
-                opt1 = "London (Wembley)";
-                opt2 = "Paris (Stade de France)";
-                RepCorrect = "London (Wembley)";
-                break;
-            case "South America":
-                qText = "Which club has won the most Copa Libertadores titles?";
-                opt1 = "Independiente";
-                opt2 = "Boca Juniors";
-                RepCorrect = "Independiente";
-                break;
-            case "Asia":
-                qText = "Which Asian team reached the semi-finals of the 2002 World Cup?";
-                opt1 = "South Korea";
-                opt2 = "Japan";
-                RepCorrect = "South Korea";
-                break;
-            default:
-                qText = "Who is the all-time top scorer in FIFA World Cup history?";
-                opt1 = "Miroslav Klose";
-                opt2 = "Pelé";
-                RepCorrect = "Miroslav Klose";
-                break;
+        // Contenu dynamique basé sur le continent
+        if (detectedContinent.equals("Africa")) {
+            tvQuestion.setText("Which African stadium is known as 'Soccer City'?");
+            rbA.setText("FNB Stadium"); rbB.setText("Stade Mohammed V"); 
+            rbC.setText("Cairo Stadium"); rbD.setText("Stade Léopold Sédar Senghor");
+            RepCorrect = "FNB Stadium";
+        } else {
+            tvQuestion.setText("Who won the UEFA Euro 2024?");
+            rbA.setText("Spain"); rbB.setText("England"); 
+            rbC.setText("France"); rbD.setText("Germany");
+            RepCorrect = "Spain";
         }
-
-        tvQuestion.setText(qText);
-        
-        // Randomize options
-        List<String> options = new ArrayList<>();
-        options.add(opt1);
-        options.add(opt2);
-        Collections.shuffle(options);
-        
-        rb1.setText(options.get(0));
-        rb2.setText(options.get(1));
     }
 }

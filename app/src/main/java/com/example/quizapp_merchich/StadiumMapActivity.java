@@ -26,6 +26,7 @@ public class StadiumMapActivity extends FragmentActivity implements OnMapReadyCa
 
     private GoogleMap mMap;
     private FusedLocationProviderClient fusedLocationClient;
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 101;
     private String userContinent = "Global";
     private TextView tvMapSubtitle;
 
@@ -48,24 +49,28 @@ public class StadiumMapActivity extends FragmentActivity implements OnMapReadyCa
             mapFragment.getMapAsync(this);
         }
 
-        FloatingActionButton fabBack = findViewById(R.id.fabBack);
-        fabBack.setOnClickListener(v -> finish());
+        findViewById(R.id.fabBack).setOnClickListener(v -> finish());
     }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        // Custom Map Styling (Optional, simple)
         mMap.getUiSettings().setZoomControlsEnabled(true);
         mMap.getUiSettings().setCompassEnabled(true);
+        mMap.getUiSettings().setMyLocationButtonEnabled(true);
 
+        enableMyLocation();
+        addFootballMarkers();
+    }
+
+    private void enableMyLocation() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
             getCurrentLocation();
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
         }
-
-        addFootballMarkers();
     }
 
     private void getCurrentLocation() {
@@ -75,7 +80,7 @@ public class StadiumMapActivity extends FragmentActivity implements OnMapReadyCa
         fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
             if (location != null) {
                 LatLng userLatLng = new LatLng(location.getLatitude(), location.getLongitude());
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 5f));
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 8f));
             }
         });
     }
@@ -109,5 +114,17 @@ public class StadiumMapActivity extends FragmentActivity implements OnMapReadyCa
                 .title(title)
                 .snippet(snippet)
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)));
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                enableMyLocation();
+            } else {
+                Toast.makeText(this, "Permission denied. Map center will be default.", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 }

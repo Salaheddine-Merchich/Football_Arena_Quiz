@@ -40,6 +40,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/surface_dark"
+        android:gravity="center_vertical"
         android:orientation="horizontal"
         android:padding="8dp"
         app:layout_constraintBottom_toBottomOf="parent">
@@ -58,11 +59,19 @@
             android:textColorHint="@color/text_secondary" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnVoice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:src="@android:drawable/ic_btn_speak_now"
+            app:backgroundTint="@color/football_gold"
+            app:fabSize="mini"
+            app:tint="@color/bg_dark" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/btnSend"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginStart="8dp"
             android:src="@android:drawable/ic_menu_send"
             app:backgroundTint="@color/football_gold"
             app:fabSize="mini"

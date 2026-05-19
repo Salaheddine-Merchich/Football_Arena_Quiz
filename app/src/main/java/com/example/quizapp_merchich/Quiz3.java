@@ -3,6 +3,7 @@ package com.example.quizapp_merchich;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.HapticFeedbackConstants;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RadioButton;
@@ -10,32 +11,31 @@ import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 public class Quiz3 extends AppCompatActivity {
-    RadioGroup rg;
-    RadioButton rb1, rb2;
-    Button bNext;
-    TextView tvQuestion, tvContinent;
-    ImageView ivQuestion;
+    private RadioGroup rgOptions;
+    private RadioButton rbA, rbB, rbC, rbD;
+    private Button bNext;
+    private TextView tvQuestion, tvContinent, tvCurrentScore;
+    private ImageView ivQuestion;
 
-    int score;
-    String detectedContinent;
-    String RepCorrect = "";
+    private int score;
+    private String detectedContinent;
+    private String RepCorrect = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_quiz3);
 
-        rg = findViewById(R.id.rg);
-        rb1 = findViewById(R.id.rb1);
-        rb2 = findViewById(R.id.rb2);
+        rgOptions = findViewById(R.id.rgOptions);
+        rbA = findViewById(R.id.rbOptionA);
+        rbB = findViewById(R.id.rbOptionB);
+        rbC = findViewById(R.id.rbOptionC);
+        rbD = findViewById(R.id.rbOptionD);
         bNext = findViewById(R.id.bNext);
         tvQuestion = findViewById(R.id.tvQuestion);
         tvContinent = findViewById(R.id.tvContinent);
+        tvCurrentScore = findViewById(R.id.tvCurrentScore);
         ivQuestion = findViewById(R.id.ivQuestion);
 
         Intent intent = getIntent();
@@ -43,16 +43,19 @@ public class Quiz3 extends AppCompatActivity {
         detectedContinent = intent.getStringExtra("continent");
         if (detectedContinent == null) detectedContinent = "Global";
 
-        tvContinent.setText("📍 Region: " + detectedContinent);
-        setupQuizContent(detectedContinent);
+        tvContinent.setText("📍 " + detectedContinent);
+        tvCurrentScore.setText("Score: " + score);
+        
+        setupQuizContent();
 
         bNext.setOnClickListener(v -> {
-            if (rg.getCheckedRadioButtonId() == -1) {
-                Toast.makeText(getApplicationContext(), "Please select an answer!", Toast.LENGTH_SHORT).show();
+            v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+            if (rgOptions.getCheckedRadioButtonId() == -1) {
+                Toast.makeText(this, "Please select an answer!", Toast.LENGTH_SHORT).show();
             } else {
-                RadioButton selectedRb = findViewById(rg.getCheckedRadioButtonId());
+                RadioButton selectedRb = findViewById(rgOptions.getCheckedRadioButtonId());
                 if (selectedRb.getText().toString().equals(RepCorrect)) {
-                    score += 1;
+                    score++;
                 }
                 Intent nextIntent = new Intent(Quiz3.this, Quiz4.class);
                 nextIntent.putExtra("score", score);
@@ -63,56 +66,18 @@ public class Quiz3 extends AppCompatActivity {
         });
     }
 
-    private void setupQuizContent(String continent) {
-        // Intégration de la bannière principale du quiz
+    private void setupQuizContent() {
         ivQuestion.setImageResource(R.drawable.quiz_banner);
-
-        String qText = "";
-        String opt1 = "";
-        String opt2 = "";
-
-        switch (continent) {
-            case "Africa":
-                qText = "In which year did the Morocco national team win their first and only AFCON title?";
-                opt1 = "1976";
-                opt2 = "2004";
-                RepCorrect = "1976";
-                break;
-            case "Europe":
-                qText = "Which legendary French player scored twice in the 1998 World Cup Final?";
-                opt1 = "Zinedine Zidane";
-                opt2 = "Thierry Henry";
-                RepCorrect = "Zinedine Zidane";
-                break;
-            case "South America":
-                qText = "Which club is famous for its 'La Bombonera' stadium in Buenos Aires?";
-                opt1 = "Boca Juniors";
-                opt2 = "River Plate";
-                RepCorrect = "Boca Juniors";
-                break;
-            case "Asia":
-                qText = "Which Asian country co-hosted the 2002 FIFA World Cup along with South Korea?";
-                opt1 = "Japan";
-                opt2 = "China";
-                RepCorrect = "Japan";
-                break;
-            default:
-                qText = "Which nation hosted the first-ever FIFA World Cup in 1930?";
-                opt1 = "Uruguay";
-                opt2 = "Italy";
-                RepCorrect = "Uruguay";
-                break;
+        if (detectedContinent.equals("Africa")) {
+            tvQuestion.setText("In which year did Morocco win their first AFCON title?");
+            rbA.setText("1976"); rbB.setText("2004"); 
+            rbC.setText("1988"); rbD.setText("1994");
+            RepCorrect = "1976";
+        } else {
+            tvQuestion.setText("Which player scored 91 goals in a single year (2012)?");
+            rbA.setText("Lionel Messi"); rbB.setText("Cristiano Ronaldo"); 
+            rbC.setText("Robert Lewandowski"); rbD.setText("Zlatan Ibrahimovic");
+            RepCorrect = "Lionel Messi";
         }
-
-        tvQuestion.setText(qText);
-
-        // Randomize options
-        List<String> options = new ArrayList<>();
-        options.add(opt1);
-        options.add(opt2);
-        Collections.shuffle(options);
-
-        rb1.setText(options.get(0));
-        rb2.setText(options.get(1));
     }
 }
