@@ -44,6 +44,7 @@ public class Quiz1 extends AppCompatActivity {
     private static final String TAG = "QUIZ_MIC_FIX";
     private static final int LOCATION_PERMISSION_CODE = 1001;
     private static final int MIC_PERMISSION_CODE = 1002;
+    private static final int QUIZ_LENGTH = 20;
 
     // UI Elements
     private RadioGroup rgOptions;
@@ -364,7 +365,7 @@ public class Quiz1 extends AppCompatActivity {
                             ));
                         }
                         Collections.shuffle(questionList);
-                        if (questionList.size() > 5) questionList = questionList.subList(0, 5);
+                        if (questionList.size() > QUIZ_LENGTH) questionList = questionList.subList(0, QUIZ_LENGTH);
                         setupQuizStart();
                     } else {
                         fallbackToLocalQuestions();
@@ -387,7 +388,7 @@ public class Quiz1 extends AppCompatActivity {
     private void fallbackToLocalQuestions() {
         questionList = QuestionBank.getQuestionsByContinent(detectedContinent);
         Collections.shuffle(questionList);
-        if (questionList.size() > 5) questionList = questionList.subList(0, 5);
+        if (questionList.size() > QUIZ_LENGTH) questionList = questionList.subList(0, QUIZ_LENGTH);
         setupQuizStart();
     }
 
@@ -402,8 +403,11 @@ public class Quiz1 extends AppCompatActivity {
             isAnswered = false;
             Question q = questionList.get(currentQuestionIndex);
 
-            quizProgressBar.setProgress((int) (((float) (currentQuestionIndex + 1) / questionList.size()) * 100), true);
-            tvProgress.setText(String.format(Locale.getDefault(), "MATCH %d / %d", currentQuestionIndex + 1, questionList.size()));
+            int currentMatch = currentQuestionIndex + 1;
+            int totalMatches = questionList.size();
+            
+            quizProgressBar.setProgress((int) (((float) currentMatch / totalMatches) * 100), true);
+            tvProgress.setText(getString(R.string.match_progress, currentMatch, totalMatches));
             tvCurrentScore.setText(String.format(Locale.getDefault(), "Score: %d", score));
 
             tvQuestion.setText(q.getQuestionText());
